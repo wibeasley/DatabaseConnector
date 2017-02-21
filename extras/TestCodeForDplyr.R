@@ -11,7 +11,7 @@ connectionDetails <- createConnectionDetails(dbms = "pdw",
                                              schema = "CDM_Truven_MDCD_V432",
                                              port = 17001)
 
-con <- src_databaseConnector(connectionDetails, oracleTempTable = "dummy")
+con <- src_databaseConnector(connectionDetails)
 
 
 # Link to CDM tables ------------------------------------------------------
@@ -26,6 +26,17 @@ condition_occurrence <- tbl(con, "condition_occurrence")
 
 
 # Some example queries ----------------------------------------------------
+
+dim(person)
+colnames(person)
+head(person)
+males <- filter(person, race_concept_id != 8516)
+malesCollapse <- collapse(males)
+intersect(males, males)
+# Not yet working. Seems to be problem with dplyr:
+#intersect(malesCollapse, malesCollapse)
+#semi_join(person, observation_period, by = "person_id")
+#anti_join(person, observation_period, by = "person_id")
 
 numberOfPersons <- collect(person %>% count())$n
 
@@ -48,19 +59,21 @@ cumObs <- collect(group_by(observation_period, person_id) %>%
                     count() %>%
                     arrange(obs_days))
 
-months <- observation_period %>%  
+months <- compute(observation_period %>%  
   mutate(year = year(observation_period_start_date), month = month(observation_period_start_date)) %>%
   distinct(year, month) %>%
   select(year, month) %>%
   mutate(start = datefromparts(year,month, 1))  %>%
-  mutate(end = dateadd(day, -1, dateadd(month, 1, start)))
+  mutate(end = dateadd(day, -1, dateadd(month, 1, start))))
 
 # force cross join + filter until join on inequalities implemented in dplyr: https://github.com/hadley/dplyr/issues/2240
+system.time(
 personsWithObsPerMonth <- collect(inner_join(mutate(months, dummy = TRUE), mutate(observation_period, dummy = TRUE), by = "dummy") %>%
                                     filter(observation_period_start_date < start, observation_period_end_date > end) %>%
                                     group_by(year, month) %>% 
                                     count() %>%
                                     arrange(year, month))
+)
 
 personsPerCondition <- collect(condition_occurrence %>% 
                                  group_by(condition_concept_id) %>%
@@ -79,24 +92,31 @@ hcup_person <- tbl(con, id)
 hcup_person <- tbl(con, "CDM_hcup_V500.dbo.person")
 
 
-# Writing -----------------------------------------------------------------
+# Writing to temp tables ---------------------------------------------------------------
 
 df <- data.frame(id = 1:100, value = runif(100))
-test <- copy_to(con, df, "test4")
+test <- copy_to(con, df, "test")
 summarize(test, average =  mean(value))
 
-con <- src_databaseConnector(connectionDetails)
-person <- tbl(con, "person")
-observation_period <- tbl(con, "observation_period")
-concept <- tbl(con, "concept")
-condition_occurrence <- tbl(con, "condition_occurrence")
 temp_table <- compute(person %>% 
                         group_by(gender_concept_id) %>% 
                         count %>% 
                         inner_join(concept, by = c("gender_concept_id" = "concept_id")) %>% 
                         select(concept_name, n))
 
+# Writing to permanent tables ----------------------------------------------------------
 
+df <- data.frame(id = 1:100, value = runif(100))
+test <- copy_to(con, df, dbIdentifier("scratch", "test"), temporary = FALSE)
+summarize(test, average =  mean(value))
+
+my_table <- compute(person %>% 
+                        group_by(gender_concept_id) %>% 
+                        count %>% 
+                        inner_join(concept, by = c("gender_concept_id" = "concept_id")) %>% 
+                        select(concept_name, n),
+                    name = dbIdentifier("scratch", "test2") , 
+                    temporary = FALSE)
 
 dbDisconnect(con$obj)
 

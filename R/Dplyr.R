@@ -178,6 +178,16 @@ sql_select.JDBCConnection <- function(con, select, from, where = NULL,
   escape(unname(dplyr:::compact(out)), collapse = "\n", parens = FALSE, con = con)
 }
 
+sql_render.tbl_databaseConnector <- function(x, con) {
+  x$ops <- do_collapse(x$ops)
+  class(x) <- c("tbl_sql", "tbl_lazy", "tbl")
+  sql <- sql_render(x, con)
+  sql <- fixSql(sql)
+  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
+  class(sql) <- c("sql", class(sql))
+  return(sql)
+}
+
 #' @export
 collect.tbl_databaseConnector <- function(x, ..., n = Inf, warn_incomplete = TRUE) {
   assertthat::assert_that(length(n) == 1, n > 0L)
@@ -187,23 +197,29 @@ collect.tbl_databaseConnector <- function(x, ..., n = Inf, warn_incomplete = TRU
   
   con <- con_acquire(x$src)
   on.exit(con_release(x$src, con), add = TRUE)
-  x$ops <- do_collapse(x$ops)
   sql <- sql_render(x, con)
-  sql <- fixSql(sql)
-  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
   out <- querySql(con, as.character(sql))
   colnames(out) <- tolower(colnames(out))
   grouped_df(out, groups(x))
 }
 
 #' @export
+collapse.tbl_sql <- function(x, vars = NULL, ...) {
+  con <- con_acquire(x$src)
+  tryCatch({
+    sql <- sql_render(x, con)
+  }, finally = {
+    con_release(x$src, con)
+  })
+  
+  tbl(x$src, paste0("(", sql, ") alias123 ")) %>% group_by_(.dots = groups(x))
+}
+
+#' @export
 show_sql <- function(x) {
   con <- con_acquire(x$src)
-  on.exit(con_release(x$src, con), add = TRUE) 
-  x$ops <- do_collapse(x$ops, con)
+  on.exit(con_release(x$src, con), add = TRUE)
   sql <- sql_render(x, con)
-  sql <- fixSql(sql)
-  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
   return(sql)
 }
 
@@ -320,15 +336,12 @@ copy_to.src_databaseConnector <- function(dest, df, name = deparse(substitute(df
   con <- con_acquire(dest)
   name <- paste0(if (temporary) "#",name)
   tryCatch({
-    if (isTRUE(db_has_table(con, name))) {
-      stop("Table ", name, " already exists.", call. = FALSE)
-    }
-
     insertTable(connection = con,
                 tableName = name,
                 data = df,
                 createTable = TRUE,
-                tempTable = temporary)
+                tempTable = temporary,
+                dropTableIfExists = FALSE)
     db_create_indexes(con, name, unique_indexes, unique = TRUE)
     db_create_indexes(con, name, indexes, unique = FALSE)
   }, finally = {
@@ -381,6 +394,7 @@ db_save_query.JDBCConnection <- function(con, sql, name, temporary = TRUE, ...) 
   executeSql(con, sql, progressBar = FALSE, reportOverallTime = FALSE)
   name
 }
+
 
 #
 #' 
