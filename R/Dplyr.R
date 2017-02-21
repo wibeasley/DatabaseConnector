@@ -17,14 +17,15 @@
 # limitations under the License.
 
 #' @export
-src_databaseConnector <- function(connectionDetails) {
+src_databaseConnector <- function(connectionDetails, oracleTempTable = NULL) {
   con <- DatabaseConnector::connect(connectionDetails)
+  attr(con, "oracleTempTable") <- oracleTempTable
   src_sql("databaseConnector",  con, disco = dplyr:::db_disconnector(con, "databaseConnector", TRUE))
 }
 
 #' @export
 src_desc.src_databaseConnector <- function(con) {
-  return(attr(con$con, "dbms"))
+  return(attr(con$obj, "dbms"))
 }
 
 #' @export
@@ -50,7 +51,6 @@ sql_subquery.JDBCConnection <- function(con, from, name = unique_name(), ...) {
     # dplyr::sql_subquery(con, from, name, ...)
   }
 }
-
 
 #' @export
 dbIdentifier <- function(...) {
@@ -82,7 +82,7 @@ sql_translate_env.JDBCConnection <- function(con) {
 db_insert_into.JDBCConnection <- function(con, table, values, ...) {
   if (nrow(values) == 0)
     return(NULL)
-  insertTable(connection = con$con,
+  insertTable(connection = con,
               tableName = table,
               data = values,
               createTable = FALSE,
@@ -190,7 +190,7 @@ collect.tbl_databaseConnector <- function(x, ..., n = Inf, warn_incomplete = TRU
   x$ops <- do_collapse(x$ops)
   sql <- sql_render(x, con)
   sql <- fixSql(sql)
-  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"))$sql
+  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
   out <- querySql(con, as.character(sql))
   colnames(out) <- tolower(colnames(out))
   grouped_df(out, groups(x))
@@ -203,7 +203,7 @@ show_sql <- function(x) {
   x$ops <- do_collapse(x$ops, con)
   sql <- sql_render(x, con)
   sql <- fixSql(sql)
-  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"))$sql
+  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
   return(sql)
 }
 
@@ -281,6 +281,107 @@ fixSql <- function(sql) {
   return(sql)
 }
 
+#' @export
+db_create_table.JDBCConnection <- function(con, table, types,
+                                          temporary = FALSE, ...) {
+  assertthat::assert_that(assertthat::is.string(table), is.character(types))
+  
+  field_names <- escape(ident(names(types)), collapse = NULL, con = con)
+  fields <- sql_vector(
+    paste0(field_names, " ", types),
+    parens = TRUE,
+    collapse = ", ",
+    con = con
+  )
+  sql <- build_sql(
+    "CREATE ", 
+    "TABLE ", 
+    if (temporary) sql("#"),
+    ident(table), " ", fields,
+    con = con
+  )
+  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
+  executeSql(con, sql, progressBar = FALSE, reportOverallTime = FALSE)
+}
+
+#' @export
+copy_to.src_databaseConnector <- function(dest, df, name = deparse(substitute(df)),
+                            types = NULL, temporary = TRUE,
+                            unique_indexes = NULL, indexes = NULL,
+                            analyze = TRUE, ...) {
+  assertthat::assert_that(is.data.frame(df), assertthat::is.string(name), assertthat::is.flag(temporary))
+  class(df) <- "data.frame" # avoid S4 dispatch problem in dbSendPreparedQuery
+  if (!is.list(indexes)) {
+    indexes <- as.list(indexes)
+  }
+  if (!is.list(unique_indexes)) {
+    unique_indexes <- as.list(unique_indexes)
+  }
+  con <- con_acquire(dest)
+  name <- paste0(if (temporary) "#",name)
+  tryCatch({
+    if (isTRUE(db_has_table(con, name))) {
+      stop("Table ", name, " already exists.", call. = FALSE)
+    }
+
+    insertTable(connection = con,
+                tableName = name,
+                data = df,
+                createTable = TRUE,
+                tempTable = temporary)
+    db_create_indexes(con, name, unique_indexes, unique = TRUE)
+    db_create_indexes(con, name, indexes, unique = FALSE)
+  }, finally = {
+    con_release(dest, con)
+  })
+  
+  tbl(dest, name)
+}
+
+#' @export
+compute.tbl_databaseConnector <- function(x, name = dplyr:::random_table_name(), temporary = TRUE,
+                            unique_indexes = list(), indexes = list(),
+                            ...) {
+  if (!is.list(indexes)) {
+    indexes <- as.list(indexes)
+  }
+  if (!is.list(unique_indexes)) {
+    unique_indexes <- as.list(unique_indexes)
+  }
+  
+  con <- con_acquire(x$src)
+  tryCatch({
+    vars <- op_vars(x)
+    assertthat::assert_that(all(unlist(indexes) %in% vars))
+    assertthat::assert_that(all(unlist(unique_indexes) %in% vars))
+    x_aliased <- select_(x, .dots = vars) # avoids problems with SQLite quoting (#1754)
+    name <- db_save_query(con, sql_render(x_aliased, con), name = name, temporary = temporary)
+    db_create_indexes(con, name, unique_indexes, unique = TRUE)
+    db_create_indexes(con, name, indexes, unique = FALSE)
+  }, finally = {
+    con_release(x$src, con)
+  })
+  
+  tbl(x$src, name) %>% group_by_(.dots = groups(x))
+}
+
+
+#' @export
+db_save_query.JDBCConnection <- function(con, sql, name, temporary = TRUE, ...) {
+  name <- paste0(if (temporary) "#",name)
+  sql <- build_sql(
+    "SELECT * INTO ", 
+    sql(name), 
+    " FROM (", 
+    sql,
+    ") temp123;",
+    con = con
+  )
+  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"), oracleTempSchema = attr(con, "oracleTempTable"))$sql
+  executeSql(con, sql, progressBar = FALSE, reportOverallTime = FALSE)
+  name
+}
+
 #
 #' 
 #' # Doesn't return TRUE for temporary tables
@@ -289,35 +390,15 @@ fixSql <- function(sql) {
 #   table %in% db_list_tables(con$con)
 # }
 
-# #' @export
-# db_begin.JDBCConnection <- function(con, ...) {
-#   dbExecute(con, "BEGIN TRANSACTION")
-# }
-#' 
-#' # http://www.postgresql.org/docs/9.3/static/sql-explain.html
-#' #' @export
-#' db_explain.PostgreSQLConnection <- function(con, sql, format = "text", ...) {
-#'   format <- match.arg(format, c("text", "json", "yaml", "xml"))
-#'   
-#'   exsql <- build_sql(
-#'     "EXPLAIN ",
-#'     if (!is.null(format)) build_sql("(FORMAT ", sql(format), ") "),
-#'     sql
-#'   )
-#'   expl <- dbGetQuery(con, exsql)
-#'   
-#'   paste(expl[[1]], collapse = "\n")
-#' }
-#' 
-# #' @export
-# db_query_fields.JDBCConnection <- function(con, sql, ...) {
-#   fields <- build_sql(
-#     "SELECT * FROM ", sql_subquery(con, sql), " WHERE 0=1",
-#     con = con
-#   )
-#   
-#   qry <- dbSendQuery(con, fields)
-#   on.exit(dbClearResult(qry))
-#   
-#   dbGetInfo(qry)$fieldDescription[[1]]$name
-# }
+#' @export
+db_begin.JDBCConnection <- function(con, ...) {
+  #dbExecute(con, "BEGIN TRANSACTION")
+}
+
+#' @export
+db_query_fields.JDBCConnection <- function(con, sql, ...) {
+  sql <- sql_select(con, sql("*"), sql_subquery(con, sql), where = sql("0 = 1"))
+  sql <- SqlRender::translateSql(as.character(sql), targetDialect = attr(con, "dbms"))$sql
+  res <- querySql(con, sql)
+  tolower(names(res))
+}

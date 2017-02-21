@@ -11,8 +11,7 @@ connectionDetails <- createConnectionDetails(dbms = "pdw",
                                              schema = "CDM_Truven_MDCD_V432",
                                              port = 17001)
 
-
-con <- src_databaseConnector(connectionDetails)
+con <- src_databaseConnector(connectionDetails, oracleTempTable = "dummy")
 
 
 # Link to CDM tables ------------------------------------------------------
@@ -63,7 +62,6 @@ personsWithObsPerMonth <- collect(inner_join(mutate(months, dummy = TRUE), mutat
                                     count() %>%
                                     arrange(year, month))
 
-
 personsPerCondition <- collect(condition_occurrence %>% 
                                  group_by(condition_concept_id) %>%
                                  distinct(person_id, condition_concept_id) %>%
@@ -80,5 +78,26 @@ hcup_person <- tbl(con, id)
 
 hcup_person <- tbl(con, "CDM_hcup_V500.dbo.person")
 
+
+# Writing -----------------------------------------------------------------
+
+df <- data.frame(id = 1:100, value = runif(100))
+test <- copy_to(con, df, "test4")
+summarize(test, average =  mean(value))
+
+con <- src_databaseConnector(connectionDetails)
+person <- tbl(con, "person")
+observation_period <- tbl(con, "observation_period")
+concept <- tbl(con, "concept")
+condition_occurrence <- tbl(con, "condition_occurrence")
+temp_table <- compute(person %>% 
+                        group_by(gender_concept_id) %>% 
+                        count %>% 
+                        inner_join(concept, by = c("gender_concept_id" = "concept_id")) %>% 
+                        select(concept_name, n))
+
+
+
+dbDisconnect(con$obj)
 
 
