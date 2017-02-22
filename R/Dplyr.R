@@ -34,11 +34,6 @@ tbl.src_databaseConnector <- function(src, from, ...) {
   tbl_sql("databaseConnector", src = src, from = from, ...)
 }
 
-#' #' @export
-#' sql_escape_ident.JDBCConnection <- function(con, x) {
-#'   sql_quote(x, '"')
-#' }
-
 #' @export
 sql_subquery.JDBCConnection <- function(con, from, name = unique_name(), ...) {
   if (is.ident(from)) {
@@ -200,7 +195,16 @@ collect.tbl_databaseConnector <- function(x, ..., n = Inf, warn_incomplete = TRU
   sql <- sql_render(x, con)
   out <- querySql(con, as.character(sql))
   colnames(out) <- tolower(colnames(out))
+  # Grouping variables don't seem to update with joins, therefore not grouping df:
   grouped_df(out, groups(x))
+  return(out)
+}
+
+#' @export
+collectCamelCase <- function(x, ..., n = Inf, warn_incomplete = TRUE) {
+  df <- collect(x, ..., n = n , warn_incomplete = warn_incomplete)
+  colnames(df) <- SqlRender::snakeCaseToCamelCase(colnames(df))
+  return(df)
 }
 
 #' @export
@@ -212,7 +216,7 @@ collapse.tbl_sql <- function(x, vars = NULL, ...) {
     con_release(x$src, con)
   })
   
-  tbl(x$src, paste0("(", sql, ") alias123 ")) %>% group_by_(.dots = groups(x))
+  tbl(x$src, paste0("(", sql, ") ", dplyr:::random_table_name())) %>% group_by_(.dots = groups(x))
 }
 
 #' @export
