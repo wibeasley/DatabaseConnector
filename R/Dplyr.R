@@ -20,12 +20,12 @@
 src_databaseConnector <- function(connectionDetails, oracleTempTable = NULL) {
   con <- DatabaseConnector::connect(connectionDetails)
   attr(con, "oracleTempTable") <- oracleTempTable
-  src_sql("databaseConnector",  con, disco = dplyr:::db_disconnector(con, "databaseConnector", TRUE))
+  src_sql("databaseConnector",  con, disco = dplyr:::db_disconnector(con, "databaseConnector"))
 }
 
 #' @export
 src_desc.src_databaseConnector <- function(con) {
-  return(attr(con$obj, "dbms"))
+  return(attr(con$con, "dbms"))
 }
 
 #' @export
@@ -35,12 +35,14 @@ tbl.src_databaseConnector <- function(src, from, ...) {
 }
 
 #' @export
-sql_subquery.JDBCConnection <- function(con, from, name = unique_name(), ...) {
+sql_subquery.JDBCConnection <- function(con, from, name = dplyr:::unique_name(), ...) {
   if (is.ident(from)) {
     setNames(from, name)
   } else if (inherits(from, "dbIdentifier")) {
     # Workaround for table and field names with dots in them
-    from
+    result <- paste(from, name)
+    class(result) <- c("sql", class(result))
+    return(result)
   } else {
     build_sql("(", from, ") ", ident(dplyr:::`%||%`(name, dplyr:::random_table_name())), con = con)
     # dplyr::sql_subquery(con, from, name, ...)
@@ -195,8 +197,7 @@ collect.tbl_databaseConnector <- function(x, ..., n = Inf, warn_incomplete = TRU
   sql <- sql_render(x, con)
   out <- querySql(con, as.character(sql))
   colnames(out) <- tolower(colnames(out))
-  # Grouping variables don't seem to update with joins, therefore not grouping df:
-  grouped_df(out, groups(x))
+  # grouped_df(out, groups(x))
   return(out)
 }
 

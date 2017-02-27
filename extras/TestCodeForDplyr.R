@@ -88,9 +88,15 @@ conditionsByConcept <- condition_occurrence %>%
   group_by(condition_concept_id)
 
 personsPerCondition <- conditionsByConcept %>%
-  distinct(person_id, condition_concept_id) %>%
+  distinct(person_id) %>%
   count() %>%
   rename(person_count = n)
+
+collect(conditionsByConcept %>%
+          distinct(person_id) %>%
+          count() %>%
+          ungroup %>%
+          rename(person_count = n))
 
 codesPerCondition <- conditionsByConcept %>%
   count() %>%
@@ -169,17 +175,28 @@ dbDisconnect(con$obj)
 
 
 
-src <- src_postgres(dbname = "ohdsi", 
+con <- src_postgres(dbname = "ohdsi", 
                     host = "localhost",
                     user = "postgres",
                     password = Sys.getenv("pwPostgres"))
 
-dbSendQuery(src$obj, "SET search_path TO cdm_synpuf")
+dbSendQuery(con$con, "SET search_path TO cdm_synpuf")
+dbSendQuery(con$con, "SET search_path TO cdm_truven_ccae_6k_v5")
+
 items <- data.frame(id = c(1,2,3), name = c("a", "b", "c"))
 map <- data.frame(id_1 = c(1,1,2), id_2 = c(1,2,3))
 
 items <- copy_to(src, items)
 map <- copy_to(src, map)
+
+
+show_sql(items %>%
+           inner_join(map, by = c("id" = "id_1")) %>%
+           group_by(id, name) %>%
+           summarise(id_2 = max(id_2)) %>%
+           rename(origin_id = id) %>%
+           inner_join(items, by = c("id_2" = "id")) %>%
+           select(name.y, origin_id))
 
 items %>%
   inner_join(map, by = c("id" = "id_1")) %>%
@@ -196,7 +213,7 @@ items %>%
   inner_join(items, by = c("id_2" = "id")) %>%
   select(hlt_name = concept_name.y, standard_name = concept_name.x, concept_id = concept_id.x)
 
-dbDisconnect(src$obj)
+dbDisconnect(src$con)
 
 
 
