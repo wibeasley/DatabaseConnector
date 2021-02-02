@@ -178,11 +178,7 @@ conn <- connect(dbms = "postgresql",
 dbGetQuery(conn, "SELECT COUNT(*) FROM person")
 disconnect(conn)
 
-<<<<<<< HEAD
-conn <- connect(dbms = "sql server", server = "sqlServerHost", schema = "Vocabulary")
-=======
 conn <- connect(dbms = "sql server", server = "RNDUSRDHIT06.jnj.com")
->>>>>>> develop
 dbGetQuery(conn, "SELECT COUNT(*) FROM concept")
 disconnect(conn)
 

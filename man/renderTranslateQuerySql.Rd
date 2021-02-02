@@ -7,16 +7,10 @@
 renderTranslateQuerySql(
   connection,
   sql,
-<<<<<<< HEAD
-  errorReportFile = file.path(getwd(), "errorReport.txt"),
-  snakeCaseToCamelCase = FALSE,
-  oracleTempSchema = NULL,
-=======
   errorReportFile = file.path(getwd(), "errorReportSql.txt"),
   snakeCaseToCamelCase = FALSE,
   oracleTempSchema = NULL,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
->>>>>>> develop
   ...
 )
 }
@@ -45,7 +39,7 @@ A data frame.
 This function renders, and translates SQL, sends it to the server, and returns the results as a data.frame.
 }
 \details{
-This function calls the \code{render} and \code{translate} functions in the SqlRender package before 
+This function calls the \code{render} and \code{translate} functions in the SqlRender package before
 calling \code{\link{querySql}}.
 }
 \examples{
@@ -56,7 +50,7 @@ connectionDetails <- createConnectionDetails(dbms = "postgresql",
                                              password = "blah",
                                              schema = "cdm_v4")
 conn <- connect(connectionDetails)
-persons <- renderTranslatequerySql(conn, 
+persons <- renderTranslatequerySql(conn,
                                    sql = "SELECT TOP 10 * FROM @schema.person",
                                    schema = "cdm_synpuf")
 disconnect(conn)

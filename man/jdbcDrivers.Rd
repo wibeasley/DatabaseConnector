@@ -6,7 +6,7 @@
 \description{
 Below are instructions for downloading JDBC drivers for the various data platforms. Once downloaded
 use the \code{pathToDriver} argument in the \code{\link{connect}} or \code{\link{createConnectionDetails}}
-functions to point to the driver. Alternatively, you can set the 'DATABASECONNECTOR_JAR_FOLDER' environmental 
+functions to point to the driver. Alternatively, you can set the 'DATABASECONNECTOR_JAR_FOLDER' environmental
 variable, for example in your .Renviron file (recommended).
 }
 \section{SQL Server, Oracle, PostgreSQL, PDW, RedShift}{
@@ -31,14 +31,13 @@ download the latest JDBC driver. Unzip the file, and locate the appropriate jar 
 your OS version, and click "GET IT NOW!'. Register, and you should be able to download the driver.
 }
 
-<<<<<<< HEAD
 \section{Spark}{
- Go to \href{https://www.simba.com/drivers/spark-jdbc-odbc/}{Simba Spark site} and 
+ Go to \href{https://www.simba.com/drivers/spark-jdbc-odbc/}{Simba Spark site} and
 download the latest JDBC driver (license may be required).
-=======
+}
+
 \section{SQLite}{
  For SQLite we actually don't use a JDBC driver. Instead, we use the RSQLite package, which can be installed
 using \code{install.packages("RSQLite")}.
->>>>>>> develop
 }
 

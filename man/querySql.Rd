@@ -7,11 +7,7 @@
 querySql(
   connection,
   sql,
-<<<<<<< HEAD
-  errorReportFile = file.path(getwd(), "errorReport.txt"),
-=======
   errorReportFile = file.path(getwd(), "errorReportSql.txt"),
->>>>>>> develop
   snakeCaseToCamelCase = FALSE
 )
 }

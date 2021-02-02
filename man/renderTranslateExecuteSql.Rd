@@ -10,16 +10,10 @@ renderTranslateExecuteSql(
   profile = FALSE,
   progressBar = TRUE,
   reportOverallTime = TRUE,
-<<<<<<< HEAD
-  errorReportFile = file.path(getwd(), "errorReport.txt"),
-  runAsBatch = FALSE,
-  oracleTempSchema = NULL,
-=======
   errorReportFile = file.path(getwd(), "errorReportSql.txt"),
   runAsBatch = FALSE,
   oracleTempSchema = NULL,
   tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
->>>>>>> develop
   ...
 )
 }
@@ -40,10 +34,10 @@ all statements.}
 \item{errorReportFile}{The file where an error report will be written if an error occurs. Defaults to
 'errorReportSql.txt' in the current working directory.}
 
-\item{runAsBatch}{When true the SQL statements are sent to the server as a single batch, and 
+\item{runAsBatch}{When true the SQL statements are sent to the server as a single batch, and
 executed there. This will be faster if you have many small SQL statements, but
-there will be no progress bar, and no per-statement error messages. If the 
-database platform does not support batched updates the query is executed as 
+there will be no progress bar, and no per-statement error messages. If the
+database platform does not support batched updates the query is executed as
 ordinarily.}
 
 \item{oracleTempSchema}{DEPRECATED: use \code{tempEmulationSchema} instead.}
@@ -58,7 +52,7 @@ can be created.}
 This function renders, translates, and executes SQL consisting of one or more statements.
 }
 \details{
-This function calls the \code{render} and \code{translate} functions in the SqlRender package before 
+This function calls the \code{render} and \code{translate} functions in the SqlRender package before
 calling \code{\link{executeSql}}.
 }
 \examples{
@@ -69,7 +63,7 @@ connectionDetails <- createConnectionDetails(dbms = "postgresql",
                                              password = "blah",
                                              schema = "cdm_v4")
 conn <- connect(connectionDetails)
-renderTranslateExecuteSql(connection, 
+renderTranslateExecuteSql(connection,
                           sql = "SELECT * INTO #temp FROM @schema.person;",
                           schema = "cdm_synpuf")
 disconnect(conn)
