@@ -1,3 +1,90 @@
+DatabaseConnector 4.0.0
+=======================
+
+Changes:
+
+1. JDBC drivers are no longer pre-packaged in DatabaseConnectorJars. Instead, drivers need to be downloaded manually to a user-specified location in the local file system. The `downloadJdbcDrivers()` function has been added to make downing drivers easier. The path to the drivers can be set in the 'DATABASECONNECTOR_JAR_FOLDER' environmental variable.
+
+2. Support for 64-bit integers using bit64's `integer64` type.
+
+3. INT fields are now translated to R integers and back.
+
+4. ConnectionDetails delays evaluation of sensitive arguments until needed for improved security.
+
+5. Removing deprecated `schema` argument from `createConnectionDetails` and `connect`.
+
+6. Deprecating `useMppBulkLoad` argument of `insertTable()` function in favor of `bulkLoad` argument.
+
+7. Deprecating `oracleTempSchema` argument in various functions in favor of `tempEmulationSchema` argument, which can be set via the "sqlRenderTempEmulationSchema" option.
+
+8. Adding bulk upload mode for PostgreSQL.
+
+9. Batch mode in `executeSql` divides SQL into batches (1000 statements per batch) to avoid running our of Java heap memory.
+
+10. Removed message that 'JDBC driver supports batch updates' when running executeSql in batch mode.
+
+11. Added optional `databaseSchema` argument to `insertTable` for consistency with general OHDSI framework.
+
+
+Bugfixes:
+
+1. Fixed 'Warning: no non-missing arguments to max; returning -Inf' when a column only has NA values, or no values at all.
+
+2. Fixed error when trying to insert data from a tibble.
+
+3. Error report now includes all SQL in a batch when failing in batch mode.
+
+
+DatabaseConnector 3.0.0
+=======================
+
+Changes:
+
+1. Dropping support for orphaned ff package.
+
+2. Adding support for Andromeda package to replace ff.
+
+3. Error report file name now defaults to errorReportSql.txt to avoid confusion with other error reports.
+
+4. Enforcing delay if about to exceed query quota on BigQuery.
+
+
+DatabaseConnector 2.4.4
+=======================
+
+Changes:
+
+1. Deprecating schema argument in connect and createConnectionDetails functions.
+
+2. Checking table and column names for SQL reserved words when inserting a table.
+
+3. Switching to Java 1.8 as minimum requirement.
+
+4. Preparing for DatabaseConnectorJars v1.2.0, which will have JDBC v4.2 drivers (instead of JDBC v4).
+
+Bugfixes:
+
+1. Setting append = TRUE when not creating table in insertTable for RSQLite.
+
+2. On RedShift, converting schema name to lowercase before getting table names to fix empty results.
+
+3. Fixed insertTable on BigQuery.
+
+4. Fixing autocommit not supported error on BigQuery.
+
+
+DatabaseConnector 2.4.3
+=======================
+
+Changes:
+
+1. Adding bulk upload for Hive.
+
+Bugfixes:
+
+2. Reducing batch size when performing CTAS hack on Hive to avoid error.
+
+
 DatabaseConnector 2.4.2
 =======================
 

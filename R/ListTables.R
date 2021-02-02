@@ -1,6 +1,6 @@
 # @file ListTables.R
 #
-# Copyright 2019 Observational Health Data Sciences and Informatics
+# Copyright 2021 Observational Health Data Sciences and Informatics
 #
 # This file is part of DatabaseConnector
 #
@@ -48,6 +48,9 @@ getTableNames <- function(connection, databaseSchema) {
   } else {
     if (connection@dbms == "oracle") {
       databaseSchema <- toupper(databaseSchema)
+    } 
+    if (connection@dbms == "redshift") {
+      databaseSchema <- tolower(databaseSchema)
     }
     databaseSchema <- strsplit(databaseSchema, "\\.")[[1]]
     if (length(databaseSchema) == 1) {

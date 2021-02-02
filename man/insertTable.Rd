@@ -6,13 +6,23 @@
 \usage{
 insertTable(
   connection,
+<<<<<<< HEAD
+=======
+  databaseSchema = NULL,
+>>>>>>> develop
   tableName,
   data,
   dropTableIfExists = TRUE,
   createTable = TRUE,
   tempTable = FALSE,
   oracleTempSchema = NULL,
+<<<<<<< HEAD
   useMppBulkLoad = FALSE,
+=======
+  tempEmulationSchema = getOption("sqlRenderTempEmulationSchema"),
+  bulkLoad = Sys.getenv("DATABASE_CONNECTOR_BULK_UPLOAD"),
+  useMppBulkLoad = Sys.getenv("USE_MPP_BULK_LOAD"),
+>>>>>>> develop
   progressBar = FALSE,
   camelCaseToSnakeCase = FALSE
 )
@@ -20,9 +30,12 @@ insertTable(
 \arguments{
 \item{connection}{The connection to the database server.}
 
+\item{databaseSchema}{(Optional) The name of the database schema where the table should
+be located.}
+
 \item{tableName}{The name of the table where the data should be inserted.}
 
-\item{data}{The data frame or ffdf containing the data to be inserted.}
+\item{data}{The data frame containing the data to be inserted.}
 
 \item{dropTableIfExists}{Drop the table if the table already exists before writing?}
 
@@ -30,15 +43,17 @@ insertTable(
 
 \item{tempTable}{Should the table created as a temp table?}
 
-\item{oracleTempSchema}{Specifically for Oracle, a schema with write priviliges where temp tables
+\item{oracleTempSchema}{DEPRECATED: use \code{tempEmulationSchema} instead.}
+
+\item{tempEmulationSchema}{Some database platforms like Oracle and Impala do not truly support temp tables. To
+emulate temp tables, provide a schema with write privileges where temp tables
 can be created.}
 
-\item{useMppBulkLoad}{If using Redshift or PDW, use more performant bulk loading techniques.
-Setting the system environment variable "USE_MPP_BULK_LOAD" to TRUE is
-another way to enable this mode. Please note, Redshift requires valid S3
-credentials; PDW requires valid DWLoader installation. This can only be
-used for permanent tables, and cannot be used to append to an existing
-table.}
+\item{bulkLoad}{If using Redshift, PDW, Hive or Postgres, use more performant bulk loading 
+techniques. Does not work for temp tables (except for HIVE). See Details for 
+requirements for the various platforms.}
+
+\item{useMppBulkLoad}{DEPRECATED. Use \code{bulkLoad} instead.}
 
 \item{progressBar}{Show a progress bar when uploading?}
 
@@ -46,36 +61,43 @@ table.}
 are converted to snake_case before uploading.}
 }
 \description{
-This function sends the data in a data frame or ffdf to a table on the server. Either a new table
+This function sends the data in a data frame to a table on the server. Either a new table
 is created, or the data is appended to an existing table.
 }
 \details{
 This function sends the data in a data frame to a table on the server. Either a new table is
 created, or the data is appended to an existing table. NA values are inserted as null values in the
-database. If using Redshift or PDW, bulk uploading
-techniques may be more performant than relying upon a batch of insert statements, depending upon
-data size and network throughput. Redshift: The MPP bulk loading relies upon the CloudyR S3 library
-to test a connection to an S3 bucket using AWS S3 credentials. Credentials are configured either
+database. 
+
+Bulk uploading: 
+
+Redshift: The MPP bulk loading relies upon the CloudyR S3 library
+to test a connection to an S3 bucket using AWS S3 credentials. Credentials are configured 
 directly into the System Environment using the following keys: Sys.setenv("AWS_ACCESS_KEY_ID" =
 "some_access_key_id", "AWS_SECRET_ACCESS_KEY" = "some_secret_access_key", "AWS_DEFAULT_REGION" =
 "some_aws_region", "AWS_BUCKET_NAME" = "some_bucket_name", "AWS_OBJECT_KEY" = "some_object_key",
-"AWS_SSE_TYPE" = "server_side_encryption_type") PDW: The MPP bulk loading relies upon the client
+"AWS_SSE_TYPE" = "server_side_encryption_type"). 
+
+PDW: The MPP bulk loading relies upon the client
 having a Windows OS and the DWLoader exe installed, and the following permissions granted: --Grant
 BULK Load permissions - needed at a server level USE master; GRANT ADMINISTER BULK OPERATIONS TO
 user; --Grant Staging database permissions - we will use the user db. USE scratch; EXEC
-sp_addrolemember 'db_ddladmin', user;
-Set the R environment variable DWLOADER_PATH to the location of the binary.
+sp_addrolemember 'db_ddladmin', user; Set the R environment variable DWLOADER_PATH to the location 
+of the binary.
+
+PostgreSQL:
+Uses the 'pg' executable to upload. Set the POSTGRES_PATH environment variable  to the Postgres 
+binary path, e.g. 'C:/Program Files/PostgreSQL/11/bin'.
 }
 \examples{
 \dontrun{
 connectionDetails <- createConnectionDetails(dbms = "mysql",
                                              server = "localhost",
                                              user = "root",
-                                             password = "blah",
-                                             schema = "cdm_v5")
+                                             password = "blah")
 conn <- connect(connectionDetails)
 data <- data.frame(x = c(1, 2, 3), y = c("a", "b", "c"))
-insertTable(conn, "my_table", data)
+insertTable(conn, "my_schema", "my_table", data)
 disconnect(conn)
 
 ## bulk data insert with Redshift or PDW
@@ -87,11 +109,12 @@ connectionDetails <- createConnectionDetails(dbms = "redshift",
 conn <- connect(connectionDetails)
 data <- data.frame(x = c(1, 2, 3), y = c("a", "b", "c"))
 insertTable(connection = connection,
-            tableName = "scratch.somedata",
+            databaseSchema = "scratch",
+            tableName = "somedata",
             data = data,
             dropTableIfExists = TRUE,
             createTable = TRUE,
             tempTable = FALSE,
-            useMppBulkLoad = TRUE)  # or, Sys.setenv('USE_MPP_BULK_LOAD' = TRUE)
+            bulkLoad = TRUE)  # or, Sys.setenv("DATABASE_CONNECTOR_BULK_UPLOAD" = TRUE)
 }
 }

@@ -17,11 +17,8 @@ vignette: >
 
 ```{r, echo = FALSE, message = FALSE}
 library(DatabaseConnector)
-knitr::opts_chunk$set(
-  cache=FALSE,
-  comment = "#>",
-  error = FALSE,
-  tidy = FALSE)
+oldJarFolder <- Sys.getenv("DATABASECONNECTOR_JAR_FOLDER")
+Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = tempdir())
 ```
 
 # Introduction
@@ -33,7 +30,7 @@ Supported database platforms:
 * Microsoft SQL Server
 * Oracle
 * PostgresSql
-* Microsoft Parallel Data Warehouse (a.k.a. Analytics Platform System)
+* Microsoft Parallel Data Warehouse (PDW, a.k.a. Analytics Platform System)
 * Amazon Redshift
 * Apache Impala
 * Google BigQuery
@@ -41,45 +38,85 @@ Supported database platforms:
 * SQLite
 * Spark
 
+<<<<<<< HEAD
 # Obtaining drivers for BigQuery, Netezza, Impala, and Spark
 
 The package already contains most drivers, but because of licensing reasons the drivers for BigQuery, Netezza, Impala, and Spark are not included but must be obtained by the user. Type
+=======
+# Obtaining drivers 
+
+Before DatabaseConnector can be used to connect to a database, the drivers need to be downloaded to a location in the local file system. 
+
+## Obtaining drivers for SQL Server, Oracle, PostgreSQL, PDW, RedShift
+
+For your convenience these JDBC drivers are hosted on the OHDSI GitHub pages, and can be downloaded using the `downloadJdbcDrivers` function. Before downloading, we need to specify the location on the local file system where the driver can be stored. We recommend setting the `DATABASECONNECTOR_JAR_FOLDER` environmental variable to the folder where the drivers are stored. 
+
+For example, in this vignette we will use the PostgreSQL driver. We specify the local folder we'd like to use for storing the PostgreSQL driver:
+
+```{r eval=FALSE}
+Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = "c:/temp/jdbcDrivers")
+```
+
+And next download the driver:
+
+```{r eval=FALSE}
+downloadJdbcDrivers("postgresql")
+```
+```{r echo=FALSE}
+writeLines("DatabaseConnector JDBC drivers downloaded to 'c:/temp/jdbcDrivers'.")
+```
+
+Note that if we hadn't specified the `DATABASECONNECTOR_JAR_FOLDER` environmental variable, we would have to specify the `pathToDriver` argument when calling `downloadJdbcDrivers`.
+
+## Obtaining drivers for BigQuery, Netezza and Impala
+
+Because of licensing reasons the drivers for BigQuery, Netezza and Impala are not included but must be obtained by the user. Type
+>>>>>>> develop
 
 ```{r eval=FALSE}
 ?jdbcDrivers
 ```
 
-for instructions on how to download these drivers. Once downloaded, you can use the `pathToDriver` argument of the `connect`, `dbConnect`, and `createConnectionDetails` functions.
+for instructions on how to download these drivers. Once downloaded, you can use the `pathToDriver` argument of the `connect`, `dbConnect`, and `createConnectionDetails` functions. Just like for the other JDBC drivers, we recommend setting the `DATABASECONNECTOR_JAR_FOLDER` environmental variable instead.
+
+##  Obtaining drivers for SQLite
+
+For SQLite we actually don't use a JDBC driver. Instead, we use the RSQLite package, which can be installed using 
+
+```{r eval=FALSE}
+install.packages("RSQLite")
+```
+
 
 # Creating a connection
 
-To connect to a database a number of details need to be specified, such as the database platform, the location of the server, the user name, and password. We can call the `connect` function and specify these details directly:
+To connect to a database a number of details need to be specified, such as the database platform, the location of the server, the user name, password, and path to the driver. We can call the `connect` function and specify these details directly:
 
 ```{r eval=FALSE}
 conn <- connect(dbms = "postgresql",
                 server = "localhost/postgres",
                 user = "joe",
-                password = "secret",
-                schema = "cdm")
+                password = "secret")
 ```
 ```{r echo=FALSE}
 writeLines("Connecting using PostgreSQL driver")
 ```
 
-See `?connect` for information on which details are required for each platform. Don't forget to close any connection afterwards:
+See `?connect` for information on which details are required for each platform. Note that we did not need to specify the `pathToDriver` argument because we previously already set the `DATABASECONNECTOR_JAR_FOLDER` environmental variable.
+
+Don't forget to close any connection afterwards:
 
 ```{r eval=FALSE}
 disconnect(conn)
 ```  
 
-Note that, instead of providing the server name, it is also possible to provide the JDBC connection string if this is more convenient:
+Instead of providing the server name, it is also possible to provide the JDBC connection string if this is more convenient:
 
 ```{r eval=FALSE}
 conn <- connect(dbms = "postgresql",
                 connectionString = "jdbc:postgresql://localhost:5432/postgres",
                 user = "joe",
-                password = "secret",
-                schema = "cdm")
+                password = "secret")
 ```
 ```{r echo=FALSE}
 writeLines("Connecting using PostgreSQL driver")
@@ -92,14 +129,14 @@ Sometimes we may want to first specify the connection details, and defer connect
 details <- createConnectionDetails(dbms = "postgresql",
                                    server = "localhost/postgres",
                                    user = "joe",
-                                   password = "secret",
-                                   schema = "cdm")
+                                   password = "secret")
 conn <- connect(details)
 ```
 ```{r echo=FALSE}
 writeLines("Connecting using PostgreSQL driver")
 ```
 
+<<<<<<< HEAD
 ## Specifying the driver location for BigQuery, Netezza, Impala, and Spark
 
 For BigQuery, Netezza, Impala,and Spark the drivers are not included in the `DatabaseConnector` package and need to be downloaded separately, as noted earlier. Once downloaded, we can point to the folder containing the jar files using the `pathToDriver` argument:
@@ -117,6 +154,8 @@ conn <- connect(details)
 writeLines("Connecting using Netezza driver")
 ```
 
+=======
+>>>>>>> develop
 # Querying
 
 The main functions for querying database are the `querySql` and `executeSql` functions. The difference between these functions is that `querySql` expects data to be returned by the database, and can handle only one SQL statement at a time. In contrast, `executeSql` does not expect data to be returned, and accepts multiple SQL statements in a single SQL string. 
@@ -136,19 +175,21 @@ executeSql(conn, "TRUNCATE TABLE foo; DROP TABLE foo; CREATE TABLE foo (bar INT)
 
 Both function provide extensive error reporting: When an error is thrown by the server, the error message and the offending piece of SQL are written to a text file to allow better debugging. The `executeSql` function also by default shows a progress bar, indicating the percentage of SQL statements that has been executed. If those attributes are not desired, the package also offers the `lowLevelQuerySql` and `lowLevelExecuteSql` functions.
 
-## Querying using ffdf objects
+## Querying using Andromeda objects
 
-Sometimes the data to be fetched from the database is too large to fit into memory. In this case one can use the `ff` package to store R data objects on file, and use them as if they are available in memory. `DatabaseConnector` can download data directly into ffdf objects:
+Sometimes the data to be fetched from the database is too large to fit into memory. In this case one can use the `Andromeda` package to store R data objects on file, and use them as if they are available in memory. `DatabaseConnector` can download data directly into Andromeda objects:
 
 ```{r eval=FALSE}
-x <- querySql.ffdf(conn, "SELECT * FROM person")
+library(Andromeda)
+x <- andromeda()
+querySqlToAndromeda(conn, "SELECT * FROM person", andromeda = x, andromedaTableName = "person)
 ```
 
-Where x is now an ffdf object. 
+Where `x` is now an `Andromeda` object with table `person`. 
 
 ## Querying different platforms using the same SQL
 
-One challenge when writing code that is intended to run on multiple database platforms is that each platform has its own unique SQL dialect. To tackle this problem the [SqlRender package](https://ohdsi.github.io/SqlRender/) was developed. SqlRender can translate SQL from a single starting dialect (SQL Server SQL) into any of the platforms supported by DatabaseConnector. The following convenience functions are available that first call the `render` and `translate` functions in `SqlRender`: `renderTranslateExecuteSql`, `renderTranslateQuerySql`, `renderTranslateQuerySql.ffdf`. For example:
+One challenge when writing code that is intended to run on multiple database platforms is that each platform has its own unique SQL dialect. To tackle this problem the [SqlRender package](https://ohdsi.github.io/SqlRender/) was developed. SqlRender can translate SQL from a single starting dialect (SQL Server SQL) into any of the platforms supported by DatabaseConnector. The following convenience functions are available that first call the `render` and `translate` functions in `SqlRender`: `renderTranslateExecuteSql`, `renderTranslateQuerySql`, `renderTranslateQuerySqlToAndromeda`. For example:
 
 ```{r eval=FALSE}
 persons <- renderTranslatequerySql(conn, 
@@ -177,8 +218,7 @@ conn <- dbConnect(DatabaseConnectorDriver(),
                   dbms = "postgresql",
                   server = "localhost/postgres",
                   user = "joe",
-                  password = "secret",
-                  schema = "cdm")
+                  password = "secret")
 ```
 ```{r echo=FALSE}
 writeLines("Connecting using PostgreSQL driver")
@@ -215,10 +255,15 @@ DatabaseConnector also supports SQLite through the [RSQLite package](https://cra
 conn <- connect(dbms = "sqlite", server = tempfile())
 
 # Upload cars dataset as table:
-insertTable(conn, "cars", cars)
+insertTable(connection = conn, 
+            tableName = "cars", 
+            data = cars)
 
-querySql(conn, "SELECT COUNT(*) FROM cars;")
+querySql(conn, "SELECT COUNT(*) FROM main.cars;")
 
 disconnect(conn)
 ```
 
+```{r, echo = FALSE, message = FALSE}
+Sys.setenv("DATABASECONNECTOR_JAR_FOLDER" = oldJarFolder)
+```

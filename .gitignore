@@ -4,3 +4,6 @@
 R/LocalEnvironment.R
 /bin/
 .DS_Store
+/DatabaseConnector.iml
+.idea/
+errorReportSql.txt

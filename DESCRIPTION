@@ -1,8 +1,8 @@
 Package: DatabaseConnector
 Type: Package
 Title: Connecting to Various Database Platforms
-Version: 2.4.2
-Date: 2019-11-01
+Version: 4.0.0
+Date: 2020-10-20
 Authors@R: c(
     person("Martijn", "Schuemie", email = "schuemie@ohdsi.org", role = c("aut", "cre")),
     person("Marc", "Suchard", role = c("aut")),
@@ -12,33 +12,38 @@ Authors@R: c(
     person("Oracle Inc.", role = c("cph"), comment = "Oracle  JDBC driver"),
     person("Amazon Inc.", role = c("cph"), comment = "RedShift  JDBC driver")
   )
-Description: An R 'DataBase Interface' ('DBI') compatible interface to various database platforms ('PostgreSQL', 'Oracle', 'Microsoft SQL Server', 
+Description: An R 'DataBase Interface' ('DBI') compatible interface to various database platforms ('PostgreSQL', 'Oracle', 'Microsoft SQL Server',
     'Amazon Redshift', 'Microsoft Parallel Database Warehouse', 'IBM Netezza', 'Apache Impala', 'Google BigQuery', 'SQLite', and 'Spark'). Also includes support for
-    fetching data as 'ffdf' objects. Uses 'Java Database Connectivity' ('JDBC') to connect to databases (except SQLite).
+    fetching data as 'Andromeda' objects. Uses 'Java Database Connectivity' ('JDBC') to connect to databases (except SQLite).
+SystemRequirements: Java version 8 or higher (https://www.java.com/)
+Depends:
+    R (>= 2.10)
 Imports:
-    DatabaseConnectorJars,
     rJava,
-    bit,
-    ff,
-    ffbase (>= 0.12.1),
     SqlRender (>= 1.6.3),
     methods,
+    stringr,
+    rlang,
     utils,
     DBI (>= 1.0.0),
-    urltools
+    urltools,
+    bit64
 Suggests:
     aws.s3,
-    uuid,
     R.utils,
+    withr,
     testthat,
     DBItest,
     knitr,
     rmarkdown,
-    RSQLite
+    RSQLite,
+    ssh,
+    Andromeda,
+    dplyr
 License: Apache License
 VignetteBuilder: knitr
 URL: https://ohdsi.github.io/DatabaseConnector, https://github.com/OHDSI/DatabaseConnector
 BugReports: https://github.com/OHDSI/DatabaseConnector/issues
 Copyright: See file COPYRIGHTS
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Encoding: UTF-8
