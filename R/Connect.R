@@ -7,7 +7,6 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
 #     http://www.apache.org/licenses/LICENSE-2.0
 # 
 # Unless required by applicable law or agreed to in writing, software
@@ -556,6 +555,11 @@ connect <- function(connectionDetails = NULL,
       lowLevelExecuteSql(connection, paste("USE", schema))
     }
     attr(connection, "dbms") <- dbms
+    
+    sql <- "set spark.sql.crossJoin.enabled = true;
+            set spark.sql.autoBroadcastJoinThreshold = -1;"
+    executeSql(connection = connection, sql = sql)
+    
     return(connection)
   }
 }

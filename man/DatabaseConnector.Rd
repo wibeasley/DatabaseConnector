@@ -3,8 +3,4 @@
 \docType{package}
 \name{DatabaseConnector}
 \alias{DatabaseConnector}
-\alias{DatabaseConnector-package}
 \title{DatabaseConnector}
-\description{
-DatabaseConnector
-}
