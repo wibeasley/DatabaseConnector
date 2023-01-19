@@ -16,6 +16,7 @@ dbplyr_edition.DatabaseConnectorConnection <- function(con) {
   2L
 }
 
+#' @importFrom dbplyr sql_query_select
 #' @export
 sql_query_select.DatabaseConnectorConnection <- function(con, select, from, where = NULL,
                                                     group_by = NULL, having = NULL,
@@ -38,6 +39,7 @@ sql_query_select.DatabaseConnectorConnection <- function(con, select, from, wher
   )
 }
 
+#' @importFrom dbplyr sql_query_insert
 #' @export
 sql_query_insert.DatabaseConnectorConnection <- function(con, x_name, y, by, ...,
                                                     conflict = c("error", "ignore"),
@@ -61,6 +63,7 @@ sql_query_insert.DatabaseConnectorConnection <- function(con, x_name, y, by, ...
   sql_format_clauses(clauses, lvl = 0, con)
 }
 
+#' @importFrom dbplyr sql_query_append
 #' @export
 sql_query_append.DatabaseConnectorConnection <- function(con, x_name, y, ...,
                                                     returning_cols = NULL) {
@@ -77,6 +80,7 @@ sql_query_append.DatabaseConnectorConnection <- function(con, x_name, y, ...,
   sql_format_clauses(clauses, lvl = 0, con)
 }
 
+#' @importFrom dbplyr sql_query_update_from
 #' @export
 sql_query_update_from.DatabaseConnectorConnection <- function(con, x_name, y, by,
                                                          update_values, ...,
@@ -96,6 +100,7 @@ sql_query_update_from.DatabaseConnectorConnection <- function(con, x_name, y, by
   sql_format_clauses(clauses, lvl = 0, con)
 }
 
+#' @importFrom dbplyr sql_query_upsert
 #' @export
 sql_query_upsert.DatabaseConnectorConnection <- function(con,
                                                     x_name,
@@ -133,6 +138,7 @@ sql_query_upsert.DatabaseConnectorConnection <- function(con,
   sql_format_clauses(clauses, lvl = 0, con)
 }
 
+#' @importFrom dbplyr sql_query_delete
 #' @export
 sql_query_delete.DatabaseConnectorConnection <- function(con, x_name, y, by, ..., returning_cols = NULL) {
   parts <- rows_prep(con, x_name, y, by, lvl = 0)
@@ -145,6 +151,7 @@ sql_query_delete.DatabaseConnectorConnection <- function(con, x_name, y, by, ...
   sql_format_clauses(clauses, lvl = 0, con)
 }
 
+#' @importFrom dbplyr sql_translation
 #' @export
 sql_translation.DatabaseConnectorConnection <- function(con) {
   mssql_scalar <-
@@ -329,6 +336,7 @@ mssql_version <- function(con) {
   }
 }
 
+#' @importFrom dbplyr sql_escape_raw
 #' @export
 sql_escape_raw.DatabaseConnectorConnection <- function(con, x) {
   
@@ -341,15 +349,14 @@ sql_escape_raw.DatabaseConnectorConnection <- function(con, x) {
   }
 }
 
+#' @importFrom dbplyr sql_table_analyze
 #' @export
 sql_table_analyze.DatabaseConnectorConnection <- function(con, table, ...) {
   # https://docs.microsoft.com/en-us/sql/t-sql/statements/update-statistics-transact-sql
   build_sql("UPDATE STATISTICS ", as.sql(table, con = con), con = con)
 }
 
-# SQL server does not use CREATE TEMPORARY TABLE and instead prefixes
-# temporary table names with #
-# <https://docs.microsoft.com/en-us/previous-versions/sql/sql-server-2008-r2/ms177399%28v%3dsql.105%29#temporary-tables>
+#' @importFrom dbplyr db_table_temporary
 #' @export
 db_table_temporary.DatabaseConnectorConnection <- function(con, table, temporary) {
   if (temporary && substr(table, 1, 1) != "#") {
@@ -362,6 +369,7 @@ db_table_temporary.DatabaseConnectorConnection <- function(con, table, temporary
   )
 }
 
+#' @importFrom dbplyr sql_query_save
 #' @export
 sql_query_save.DatabaseConnectorConnection <- function(con, sql, name,
                                                   temporary = TRUE, ...){
@@ -377,11 +385,13 @@ sql_query_save.DatabaseConnectorConnection <- function(con, sql, name,
 #' @export
 sql_values_subquery.DatabaseConnectorConnection <- sql_values_subquery_column_alias
 
+#' @importFrom dbplyr sql_random
 #' @export
 sql_random.DatabaseConnectorConnection <- function(con) {
   sql_expr(RAND())
 }
 
+#' @importFrom dbplyr sql_returning_cols
 #' @export
 sql_returning_cols.DatabaseConnectorConnection <- function(con, cols, table, ...) {
   stopifnot(table %in% c("DELETED", "INSERTED"))
@@ -456,6 +466,7 @@ mssql_case_when <- function(...) {
   with_mssql_bool(sql_case_when(...))
 }
 
+#' @importFrom dbplyr sql_escape_logical
 #' @export
 sql_escape_logical.DatabaseConnectorConnection <- function(con, x) {
   dplyr::if_else(x, "1", "0", "NULL")

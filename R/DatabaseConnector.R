@@ -22,7 +22,6 @@
 #' @importFrom utils sessionInfo setTxtProgressBar txtProgressBar object.size write.csv write.table read.csv install.packages menu download.file unzip packageVersion
 #' @importFrom bit64 integer64
 #' @import rlang
-#' @import dbplyr
 NULL
 
 .onLoad <- function(libname, pkgname) {
