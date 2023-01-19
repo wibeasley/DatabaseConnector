@@ -58,3 +58,20 @@ BugReports: https://github.com/OHDSI/DatabaseConnector/issues
 Copyright: See file COPYRIGHTS
 RoxygenNote: 7.2.3
 Encoding: UTF-8
+Collate: 
+    'Andromeda.R'
+    'DbplyrPrivateFunctions.R'
+    'Backend.R'
+    'BulkLoad.R'
+    'Compression.R'
+    'Connect.R'
+    'CtasHack.R'
+    'DBI.R'
+    'DataHash.R'
+    'DatabaseConnector.R'
+    'Drivers.R'
+    'HelperFunctions.R'
+    'InsertTable.R'
+    'ListTables.R'
+    'RStudio.R'
+    'Sql.R'

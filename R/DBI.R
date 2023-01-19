@@ -60,23 +60,13 @@ DatabaseConnectorDriver <- function() {
 # Connection
 # -----------------------------------------------------------------------------------------
 
-#' Microsoft SQL Server class.
-#'
-#' @keywords internal
-#' @export
-#' @import DBI
-setClass("Microsoft SQL Server",
-         contains = "DBIConnection"
-)
-
-
 #' DatabaseConnectorConnection class.
 #'
 #' @keywords internal
 #' @export
 #' @import DBI
 setClass("DatabaseConnectorConnection",
-         contains = "Microsoft SQL Server",
+         contains = "DBIConnection",
          slots = list(
            identifierQuote = "character",
            stringQuote = "character", dbms = "character", uuid = "character"
